@@ -28,7 +28,7 @@ export async function POST(request) {
     const webhookResult = await webhookResponse.json();
 
     if (webhookResult.errcode !== 0) {
-      throw new Error(`Webhook 发送失败：${webhookResult.errmsg || '未知错误'}`);
+      throw new Error(`企业微信返回错误：${webhookResult.errmsg} (错误码: ${webhookResult.errcode})`);
     }
 
     return new Response(JSON.stringify({ success: true, message: '留言已发送' }), {
@@ -36,11 +36,11 @@ export async function POST(request) {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    // 返回真实错误信息
-    return new Response(JSON.stringify({ 
-      success: false, 
+    // 返回详细的错误信息，包括堆栈
+    return new Response(JSON.stringify({
+      success: false,
       message: error.message || '服务器内部错误',
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: error.stack || '无堆栈信息'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
