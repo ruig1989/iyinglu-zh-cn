@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 export async function POST(request) {
   const WEBHOOK_URL = process.env.WEBHOOK_URL;
   if (!WEBHOOK_URL) {
