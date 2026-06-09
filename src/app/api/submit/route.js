@@ -1,24 +1,46 @@
+// app/api/submit/route.js
 export const runtime = 'edge';
+
 export async function POST(request) {
-  const WEBHOOK_URL = process.env.WEBHOOK_URL;
-  if (!WEBHOOK_URL) {
-    return Response.json({ success: false, message: '服务器配置错误' }, { status: 500 });
-  }
   try {
     const { name, phone, email, message } = await request.json();
-    const content = `📩 嬴麓国际官网新留言\n姓名：${name}\n电话：${phone}\n邮箱：${email || '未填写'}\n留言：${message || '无'}\n时间：${new Date().toLocaleString('zh-CN')}`;
-    const res = await fetch(WEBHOOK_URL, {
+
+    // 简单校验
+    if (!name || !phone) {
+      return new Response(JSON.stringify({ error: '姓名和电话不能为空' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const webhookUrl = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=9a673afe-86fd-4119-8d0e-7a9dcf0f1559';
+
+    const textContent = `📩 网站新留言\n姓名：${name}\n电话：${phone}\n邮箱：${email || '未填写'}\n留言：${message || '无'}\n时间：${new Date().toLocaleString('zh-CN')}`;
+
+    const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ msgtype: 'text', text: { content } }),
+      body: JSON.stringify({
+        msgtype: 'text',
+        text: { content: textContent },
+      }),
     });
-    const result = await res.json();
-    if (result.errcode === 0) {
-      return Response.json({ success: true, message: '感谢留言，我们会尽快回复！' });
-    } else {
-      return Response.json({ success: false, message: result.errmsg }, { status: 500 });
+
+    const result = await response.json();
+
+    if (result.errcode !== 0) {
+      throw new Error(result.errmsg || 'Webhook 发送失败');
     }
+
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
-    return Response.json({ success: false, message: '服务器内部错误' }, { status: 500 });
+    console.error('提交失败：', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
