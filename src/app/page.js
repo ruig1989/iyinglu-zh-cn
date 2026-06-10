@@ -37,7 +37,7 @@ export default function Home() {
       backToTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     }
 
-    // 表单提交（调用隐藏 API）
+    // 表单提交（直接调用企业微信 Webhook）
     const form = document.getElementById('demoForm');
     const feedback = document.getElementById('formFeedback');
     if (form) {
@@ -61,18 +61,22 @@ export default function Home() {
         submitBtn.textContent = '提交中...';
 
         try {
-          const res = await fetch('/api/submit', {
+          const webhookUrl = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=9a673afe-86fd-4119-8d0e-7a9dcf0f1559';
+          const textContent = `📩 网站新留言\n姓名：${name}\n电话：${phone}\n邮箱：${email || '未填写'}\n留言：${message || '无'}\n时间：${new Date().toLocaleString('zh-CN')}`;
+
+          const res = await fetch(webhookUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, phone, email, message }),
+            body: JSON.stringify({ msgtype: 'text', text: { content: textContent } })
           });
-          const data = await res.json();
-          if (data.success) {
-            feedback.textContent = data.message;
+
+          const result = await res.json();
+          if (result.errcode === 0) {
+            feedback.textContent = '感谢留言，我们会尽快回复！';
             feedback.style.color = '#27ae60';
             form.reset();
           } else {
-            throw new Error(data.message);
+            throw new Error(result.errmsg || 'Webhook 发送失败');
           }
         } catch (err) {
           feedback.textContent = '提交失败，请直接电话联系我们';
